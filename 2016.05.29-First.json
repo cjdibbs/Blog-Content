@@ -3,7 +3,6 @@
     "summary": "This is the first post for this blog",
     "body": [
         "If you can read this everything is working just fine",
-        "<span style='font-weight:bold'>HTML TEST</span>",
-        "Test of the cron job"
+        "<span style='font-weight:bold'>HTML TEST</span>"
     ]
 }
