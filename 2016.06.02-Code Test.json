@@ -1,0 +1,7 @@
+{
+    "tags": ["Meta"],
+    "summary": "This is a test of syntax highlighting",
+    "body": [
+        { "language":"haskell", "code":"module Main where\n\nmain = putStrLn \"Hello, World!\""}
+    ]
+}
