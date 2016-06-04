@@ -1,7 +1,41 @@
+<p>This is a test to see if syntax hightling is working</p>
+
+<h3>haskell</h3>
 <pre>
     <code class="haskell">
 module Main where
 
 main = putStrLn "Hello, World!
+    </code>
+</pre>
+
+<h3>Docker</h3>
+<pre>
+    <code class="Docker">
+# https://github.com/darinmorrison/docker-haskell/tree/docker-library
+FROM haskell:latest
+
+RUN cabal update
+    </code>
+</pre>
+
+<h3>Typescript</h3>
+<pre>
+    <code class="typescript">
+import {Aurelia} from 'aurelia-framework';
+
+export function configure(aurelia: Aurelia) {
+  aurelia.use
+    .standardConfiguration()
+    .developmentLogging();
+
+  //Uncomment the line below to enable animation.
+  aurelia.use.plugin('aurelia-animator-css');
+
+  //Anyone wanting to use HTMLImports to load views, will need to install the following plugin.
+  //aurelia.use.plugin('aurelia-html-import-template-loader')
+
+  aurelia.start().then(() => aurelia.setRoot());
+}
     </code>
 </pre>
