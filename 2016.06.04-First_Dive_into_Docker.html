@@ -1,0 +1,120 @@
+
+<p>
+    What is Docker? according to their site
+    <blockquote>Docker containers wrap up a piece of software in a complete filesystem that contains everything it needs to run: code, runtime, system tools, system libraries – anything you can install on a server. This guarantees that it will always run the same, regardless of the environment it is running in.</blockquote>
+    Basiclly rather then build a machine you describe how to build it so if you need to scale out or need an exact copy, say run tests on, or any other very good reason you need a copy. 
+    The core feature is that if a docker container runs on one maching you can be sure that will run the same on another.
+</p>
+<p>
+    This blog is run on a docker container running on Microsoft Azure. Why Azure? Since Microsoft was late to the game of docker support I wanted to see how far they had gotten, so far I have not broken anything yet.
+</p>
+<p>
+    To define a docker container you use a Docker file, the one for this site is:
+    <pre><code class="Docker"># https://github.com/darinmorrison/docker-haskell/tree/docker-library
+FROM haskell:latest
+
+RUN cabal update
+
+# Add Cabal File and deps/ folder
+ADD ./site.cabal /opt/site/site.cabal
+RUN cd /opt/site && cabal install --only-dependencies
+
+ADD ./src /opt/site/src
+
+# Init logging directories
+RUN mkdir /opt/site/log
+
+# Build the Project
+RUN cd /opt/site && cabal build
+
+RUN apt-get update && apt-get install -y git
+
+# Add our crontab file
+ADD config /config
+
+#start up
+ADD ./start-up.sh /opt/site/start-up.sh
+RUN chmod a+x /opt/site/start-up.sh
+
+ADD ./static /opt/site/static
+
+# The directory CMD works from
+CMD "/opt/site/start-up.sh"
+</code></pre>
+Starting from the top the first line:
+<pre><code class="Docker"># https://github.com/darinmorrison/docker-haskell/tree/docker-library
+FROM haskell:latest</code></pre>
+This is one of docker, you can inherit from a base image, in this case I am pulling the latest haskell 
+form the public <a href="https://hub.docker.com/">docker hub</a> (<a href="https://hub.docker.com/_/haskell/">haskell repostory</a>)
+</p>
+<p>
+    The haskell docker file is:
+    <pre><code class="Docker">## Dockerfile for a haskell environment
+FROM       debian:jessie
+MAINTAINER Chris Biscardi &gt;chris@christopherbiscardi.com&lt;
+
+## ensure locale is set during build
+ENV LANG            C.UTF-8
+
+RUN echo 'deb http://ppa.launchpad.net/hvr/ghc/ubuntu trusty main' > /etc/apt/sources.list.d/ghc.list && \
+    echo 'deb http://download.fpcomplete.com/debian/jessie stable main'| tee /etc/apt/sources.list.d/fpco.list && \
+    # hvr keys
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F6F88286 && \
+    # fpco keys
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C5705533DA4F78D8664B5DC0575159689BEFB442 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends cabal-install-1.22 ghc-7.10.3 happy-1.19.5 alex-3.1.4 \
+            stack zlib1g-dev libtinfo-dev libsqlite3-0 libsqlite3-dev ca-certificates g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PATH /root/.cabal/bin:/root/.local/bin:/opt/cabal/1.22/bin:/opt/ghc/7.10.3/bin:/opt/happy/1.19.5/bin:/opt/alex/3.1.4/bin:$PATH
+
+## run ghci by default unless a command is specified
+CMD ["ghci"]</code></pre>
+    This takes the <a href="https://github.com/tianon/docker-brew-debian/blob/35057319055fbeda72447ee824e5677c33db7bf9/jessie/Dockerfile">jessie</a> Docker container
+    and installs the latest version of haskell.
+</p>
+<p>
+    FROM imports a Docker Conteriner and uses at the base of your container, you must have a this command and it must the first
+    Docker command that you use if are not building from a base you use "FROM scratch"
+</p>
+<p>
+    The next bit of this sites docker file
+    <pre><code class="Docker">RUN cabal update
+
+# Add Cabal File and deps/ folder
+ADD ./site.cabal /opt/site/site.cabal
+RUN cd /opt/site && cabal install --only-dependencies
+
+ADD ./src /opt/site/src
+
+# Init logging directories
+RUN mkdir /opt/site/log
+
+# Build the Project
+RUN cd /opt/site && cabal build</pre></code>
+This will "ADD" cabal file for the project and "RUN" the command to get the dependices for the project
+</p>
+<p>
+    The last line
+    <pre><code class="Docker">CMD "/opt/site/start-up.sh"</code></pre>
+    runs the command for the docker container, which in this case starts up the job to pull in new content from git and 
+    the Snap server
+</p>
+<p>
+    that brings us to the second core feature of docker, docker caches everything. Infact docker is extermaly addgressive
+    when it comes to caching. Docker assumes that command are Pure (that is it can alwasy save the results) so unless
+    something has changed before a command runs it will just pull the results from the cache.
+</p>
+<p>
+    this is a very good thing for installing the haskell dependencies, but not so good when you want to download the latest
+    posts off of git, the common solution to this is to put anything that you need to have run anytime into the CMD step.
+    which is why there is offten a start up script for any leaf level Docker Containers
+</p>
+<h4>Basically</h4>
+<ul>
+    <li>Start with "FROM" and use the resources on docker hub as a starting poing</li>
+    <li>Use "ADD" to add files from your local file system while building the container</li>
+    <li>Use "RUN" to execute any commands needed to set up the container, such as using apt-get to intall git</li>
+    <li>End with "CMD" to execute your main process you want to run, also this a good place to put anything you need to run outside the docker cache</li> 
+</ul>
