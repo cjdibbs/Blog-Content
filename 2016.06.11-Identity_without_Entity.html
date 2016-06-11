@@ -1,0 +1,68 @@
+<p>For our needs it was far easier then we expected, all we need was to get OAuth working with out having to worry about local accounts or confirming emails you only need two small classes</p>
+<p>First a class to hold the user infomation<p>
+<pre>
+    <code class="cs">public class User : IUser&lt;int&gt; {
+    public int Id { get; set; }
+    public string UserName { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+    // ...
+}
+    </code>
+</pre>
+<p>The second is a custom user store to hold the above users</p>
+<pre>
+    <code class="cs">public class UserStore : IUserStore&lt;User, int&gt; {
+
+    public Task CreateAsync(User user) {
+        //Make a new user
+    }
+
+    public Task DeleteAsync(User user) {
+        //Delete a user
+    }
+
+    public void Dispose() { }
+
+    public async Task&lt;User&gt; FindByIdAsync(int userId) {
+        //Search for a user
+    }
+
+    public async Task&lt;User&gt; FindByNameAsync(string userName) {
+        //Search for a user by userName
+    }
+
+    public Task UpdateAsync(User user) {
+        //Update a user
+    }
+}
+    </code>
+</pre>
+<p>To Configure everything</p>
+<pre>
+    <code class="cs">public void Configure(IAppBuilder builder) {
+        builder.CreatePerOwinContext&lt;UserManager&lt;User, int&gt;&gt;(Create);
+        
+        // Configure OAuth as normal....
+    }
+    
+    UserManager&lt;User, int&gt; Create(
+        IdentityFactoryOptions&lt;UserManager&lt;User, int&gt;&gt; options, 
+        IOwinContext context
+    ) {
+        // No need to make our own user store, just use the base one
+        return new UserManager&lt;User, int&gt;(new UserStore());
+    }
+    </code>
+<pre>
+<p>I was expecting a much harder problem, there is much more that you can do there are set up optional interfaces to define what your UserStore can do</p>
+<ul>
+<li>IUserStore&lt;TUser [,TKey]&gt;</li>
+<li>IUserPasswordStore&lt;TUser [,TKey]&gt;</li>
+<li>IUserTwoFactorStore&lt;TUser [,TKey]&gt;</li>
+<li>IUserClaimStore&lt;TUser [,TKey]&gt;</li>
+<li>IRoleStore&lt;TUser [,TKey]&gt;</li>
+<li>IUserSecurityStampStore&lt;TUser [,TKey]&gt;</li>
+<li>IUserRoleStore&lt;TUser [,TKey]&gt;</li>
+</ul>
+<p>for more infomation on how these write together I recommend reading <a href="http://www.asp.net/identity/overview/extensibility/overview-of-custom-storage-providers-for-aspnet-identity">Overview of Custom Storage Providers for ASP.NET Identity</a></p>

@@ -1,0 +1,4 @@
+{
+    "tags": ["C#", "Identity Framework"],
+    "summary": "While working on a project with out an Microsoft Entity model we wanted to include OAuth (google) access. We wanted to add Identity to the site, without dragging in Entity..."
+}
