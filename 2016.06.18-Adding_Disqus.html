@@ -1,0 +1,122 @@
+<p>
+    I figured now that have a few posts up I should spend some time adding a comment board, when it comes to things like comment
+    systems I know that I can build one myself but it is so much easier to use someone else's simply because I do not want to spend my time
+    thinking about how to deal with spamers.
+</p>
+<p>
+    First according to <a href="https://help.disqus.com/customer/portal/articles/472107-using-disqus-on-ajax-sites">Disque</a> to update the comment thread on an ajax site you need to run
+    <pre>
+        <code class="javascript">DISQUS.reset({
+    reload: true,
+    config: function () {  
+        this.page.identifier = "newidentifier";  
+        this.page.url = "http://example.com/#!newthread";
+    }
+});</code>
+    </pre>
+    For this I choose to write a custom element, which I really like as a way to break up code in aurelia. So basiclly what we need to do is:
+    <ol>
+        <li>Load the disqus library</li>
+        <li>when a post loads call the above code with the corect identifier and url for the post</li>
+    </ol>
+</p>
+<h4>Loading Disqus Libary</h4>
+<p>
+    To load the disqus library there are two options, first we can simply add the library to the index.html page that boot straps the entier site, or when the element loads the first time
+    we load the script. when ever given a choice like this I choose the simplier solution
+    <pre><code class="html">    ...
+    &lt;script src="http://blog-dibbs-tech.disqus.com/embed.js"&gt;&lt;/script&gt;
+&lt;/head&gt;</code></pre>
+<h4>Adding the Element</h4>
+
+<p>First since the site is written in typescript and Disqus is a javascript library in the global namespace we need to do a bit of work to make sure that typescirt will type check correctly</p>
+<pre><code class="typescript">declare var DISQUS : any;</code></pre>
+<p>this tells typesciprt that there is a global called DISQUS that is 'any' type (a normal javascript variable)</p>
+<p>
+    according to <a href="http://ilikekillnerds.com/2015/10/aurelia-viewmodel-lifecycle-methods/">ilikekillnerds.com</a> the follow are the life cycle events for custom elements
+</p>
+    <blockquote cite="http://ilikekillnerds.com/2015/10/aurelia-viewmodel-lifecycle-methods/">
+        <storng>attached()</strong>
+    <p>This method gets called when the View is attached to the DOM. Here is where you will do your DOM manipulation, wrap elements in jQuery objects or whatever you like. All work with the DOM (especially plugins) should be done within this method.</p>
+
+<storng>detached()</strong>
+<p>This method is called when the View is detached from the DOM. If you registered events in the attached method, you would probably unbind them in here. This is your chance to free up some memory and clean the slate.</p>
+
+<storng>bind()</strong>
+<p>This method happens after binding occurs, but before the DOM attachment. This is where the DataBinding engine binds the contents of the View.</p>
+
+<storng>unbind()</strong>
+<p>This method is called when the DataBinding engine is unbound from the View.</p>
+    </blockquote>
+<p>
+    However there are two details that you need to know. First, if you need to mess with the DOM attached is the only place where you can do that, 
+    when you model is activated the DOM is not ready yet. Second, is that if just the paramerters to your model change, e.g. switching from one post
+    to another, your model and elements are not detached and reattached.
+</p>
+<p>What this means is that on attached we need to first run the updates, then if the post changes run the updates again</p>
+<pre><code class="typescript">
+    @bindable post : Post;
+    bindingEngine : BindingEngine;
+    subscription : Disposable;
+
+    attached(){
+        // listen to updates of the post
+        this.subscription = this.bindingEngine.propertyObserver(this, 'post').subscribe(this.update);
+        // intilize to current values
+        this.update(this.post);
+    }
+
+    detached(){
+        // stop listening to updates
+        this.subscription.dispose();
+    }
+
+    update(post){
+        //force DISQUS to update
+    }
+</code></pre>
+<h4>Pulling Everything together</h4>
+
+<p>disqus.html <a href="https://github.com/cjdibbs/Blog/blob/master/site/static/src/disqus.html"><i class="fa fa-github"></i></a> </p>
+<pre><code class="html">&lt;template&gt;
+    &lt;div id="disqus_thread"&gt;&lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<p>disquse.ts <a href="https://github.com/cjdibbs/Blog/blob/master/site/static/src/disqus.ts"><i class="fa fa-github"></i></a></p>
+<pre><code class="typescript">import {Post} from 'post';
+import {inject, bindable, customElement, BindingEngine, Disposable} from 'aurelia-framework';
+
+declare var DISQUS : any;
+
+@customElement('disqus') // Define the name of our custom element
+@inject(Element, BindingEngine)
+export class Disqus  {
+    @bindable post : Post;
+    element : Element;
+    bindingEngine : BindingEngine;
+    subscription : Disposable;
+
+    constructor(element : Element, bindingEngine : BindingEngine){
+        this.element = element;
+        this.bindingEngine = bindingEngine;
+    }
+
+    attached(){
+        this.subscription = this.bindingEngine.propertyObserver(this, 'post').subscribe(this.update);
+        this.update(this.post);
+    }
+
+    detached(){
+        this.subscription.dispose();
+    }
+
+    update(post){
+        DISQUS.reset({
+            reload: true,
+            config: function() {
+                this.page.identifier = `/${post.date}/${post.title}`;
+                this.page.url = `http://blog.dibbs.tech/#!post/${post.date}/${post.title}`;
+                this.page.title = post.title
+            }
+        });
+    }
+}</code></pre>
