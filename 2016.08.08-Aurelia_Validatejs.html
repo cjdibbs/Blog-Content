@@ -1,0 +1,190 @@
+<p>
+    Now that Aurelia has released I am hopful that the validation library will stabilize, a full example of this can be found on <a href="https://github.com/cjdibbs/validatejs-example">github</a>
+</p>
+<h4>Setting up the libraries</h4>
+<p>Starting with the skeleton navigation (<a href="https://github.com/aurelia/skeleton-navigation/tree/master/skeleton-esnext">github</a> you first need to add the validation libraries</p>
+<pre>
+    <code class="bash">jspm install aurelia-validation aurelia-validatejs</code>
+</pre>
+<p><strong>aurelia-validation</strong> is an interface that allows you to plug in any validation library</p>
+<p><strong>aurelia-validatejs</strong> is an implmentation of that interface using validatejs</p>
+<p>The library expects you to define how you are going to render the validation errors to the screen, 
+    for this exmaple we are going to be a bootstrap implmentation of the ValidaitonRender (defined in aurelia-validaiton) implmented by jdanyow 
+    <a href="https://gist.github.com/jdanyow/ea843c24956cfffff48bb21776291f6a">gist</a>, these files need to be added the src directory in a folder called 'bootstrap-validation'.</p>
+<p>Once you have the render imported you need to tell aurelia about the libraries and features by editing the main.js file</p>
+<pre><code class="javascript">  aurelia.use
+    .standardConfiguration()
+    .developmentLogging()
+    .plugin('aurelia-validation') // Load Validation Interface
+    .plugin('aurelia-validatejs') // Load ValidateJs Implmentation
+    .feature('bootstrap-validation'); // Load Render</code></pre>
+
+<p>With everything loaded you can now add validation to your views and view models. There are two different syntaxes for validation a decoractor and fluent.
+
+<h4>Decorators</h4>
+
+<p>If you type is a model defined in Javascript you can use the decorator syntax</p>
+
+<pre><code class="javascript">import {inject, NewInstance} from 'aurelia-framework';
+import {length, required, date, datetime, email, equality, exclusion, inclusion, format, url, numericality} from 'aurelia-validatejs';
+import {ValidationController} from 'aurelia-validation';
+
+@inject(NewInstance.of(ValidationController)) // each model get it's own instance of the validation controller
+export class Decorators {
+  model;
+
+  constructor(controller) {
+    this.controller = controller;
+    this.model = new Model();
+  }
+
+  submit() {
+    var errors = this.controller.validate(); //ask the controller if everything is ok.
+    if (errors.length === 0) {
+      alert('Submitted successfully');
+    } else {
+      alert('Form has errors');
+    }
+  }
+}
+
+class Model {
+  @length({ minimum: 5, maximum: 25 }) firstName = 'Luke';
+  @required lastName = 'Skywalker';
+  @email email = 'luke@skywalker.net';
+  @length({ minimum: 5, maximum: 25 }) password = 'equal';
+  @equality('password') confirmPassword = 'equal';
+  @inclusion(['blue', 'red']) blueOrRed = 'yellow';
+  @exclusion(['male']) gender = 'male';
+  @url website = 'http://www.google.com';
+  @numericality({ onlyInteger: true, lessThan: 115, greaterThan: 0 }) age = 25;
+  @format(/\d{5}(-\d{4})?/) zipCode = '12345';
+}
+</code></pre>
+
+<p>To connect the view model to render we imported eariler we need to update the view, for the form that we wantto validate we need to inform it what render to use and to trigger validation we need to use the validate binding behavor</p>
+    <pre><code class="html">&lt;form class="container" validation-renderer="bootstrap-form"&gt;
+    &lt;div&gt;
+      &lt;label class="form-group"&gt;
+        &lt;strong&gt;First Name&lt;/strong&gt;
+        &lt;input class="form-control" value.bind="model.firstName & validate" /&gt;
+      &lt;/label&gt;
+    &lt;/div&gt;</code></pre>
+
+<h4>Fluent</h4>
+
+<p>The fluent syntax is useful if your model is not defined in javascript, e.g. your data is coming from a web service and you are to lazy to make a type in javascript for it</p>
+
+<pre><code class="javascript">import {inject, NewInstance} from 'aurelia-framework';
+import {ValidationController} from 'aurelia-validation';
+import {ValidationRules} from 'aurelia-validatejs';
+
+@inject(NewInstance.of(ValidationController))
+export class Fluent {
+  model;
+  constructor(controller) {
+    this.controller = controller;
+    this.model = new Model();
+    
+    ValidationRules
+      .ensure('firstName')
+        .required()
+        .length({minimum: 3, maximum: 10})
+      .ensure('lastName')
+        .required()
+      .ensure('email')
+        .email()
+      .ensure('password')
+        .length({ minimum: 5, maximum: 25 })
+      .ensure('confirmPassword')
+        .equality('password')
+      .ensure('blueOrRed')
+        .inclusion(['blue', 'red'])
+      .ensure('gender')
+        .exclusion(['male'])
+      .ensure('website')
+        .url()
+      .ensure('age')
+        .numericality({ onlyInteger: true, lessThan: 115, greaterThan: 0 })
+      .ensure('zipCode')
+        .format(/\d{5}(-\d{4})?/)
+      .on(this.model);
+  }
+
+  validate() {
+    var errors = this.controller.validate();
+    if (errors.length === 0) {
+      alert('Submitted successfully');
+    } else {
+      alert('Form has errors');
+    }
+  }
+}
+
+class Model {
+  firstName = 'Luke';
+  lastName = 'Skywalker';
+  email = 'luke@skywalker.net';
+  password = 'equal';
+  confirmPassword = 'equal';
+  blueOrRed = 'yellow';
+  gender = 'male';
+  website = 'http://www.google.com';
+  age = 25;
+  zipCode = '12345';
+}
+</code></pre>
+
+<h4>More Complex Validaiton</h4>
+
+<p>As long as you define your rules correctly validation is quite easy</p>
+
+<pre><code class="javascript">import {inject, NewInstance} from 'aurelia-framework';
+import {length, required, date, datetime, email, equality, exclusion, inclusion, format, url, numericality} from 'aurelia-validatejs';
+import {ValidationController} from 'aurelia-validation';
+import {ValidationRules} from 'aurelia-validatejs';
+
+@inject(NewInstance.of(ValidationController))
+export class Master {
+    constructor(controller) {
+        this.controller = controller;
+    }
+
+    @required name;
+    @required @email email;
+
+    children = [ new Child("Empire", 5) ];
+
+    addMovie() {
+        this.children.push(new Child());
+    }
+
+    validate() {
+        debugger;
+        var errors = this.controller.validate();
+        if (errors.length === 0) {
+            alert('Submitted successfully');
+        } else {
+            alert('Form has errors');
+        }
+    }
+}
+
+class Child {
+    title;
+    raiting;
+
+    constructor(title, rating) {
+        this.title = title;
+        this.raiting = rating;
+    }
+}
+
+// You can use the Fluent syntax not class as well as an instance 
+ValidationRules
+    .ensure('title')
+        .required()
+    .ensure('raiting')
+        .required()
+        .numericality({ onlyInteger: true, lessThan: 6, greaterThan: 0 })
+    .on(Child);</code></pre>
