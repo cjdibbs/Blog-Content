@@ -1,7 +1,7 @@
 <p>
     I figured now that have a few posts up I should spend some time adding a comment board, when it comes to things like comment
     systems I know that I can build one myself but it is so much easier to use someone else's simply because I do not want to spend my time
-    thinking about how to deal with spamers.
+    thinking about how to deal with spammers.
 </p>
 <p>
     First according to <a href="https://help.disqus.com/customer/portal/articles/472107-using-disqus-on-ajax-sites">Disque</a> to update the comment thread on an ajax site you need to run
@@ -17,13 +17,13 @@
     For this I choose to write a custom element, which I really like as a way to break up code in aurelia. So basiclly what we need to do is:
     <ol>
         <li>Load the disqus library</li>
-        <li>when a post loads call the above code with the corect identifier and url for the post</li>
+        <li>when a post loads call the above code with the correct identifier and url for the post</li>
     </ol>
 </p>
-<h4>Loading Disqus Libary</h4>
+<h4>Loading Disqus Library</h4>
 <p>
     To load the disqus library there are two options, first we can simply add the library to the index.html page that boot straps the entier site, or when the element loads the first time
-    we load the script. when ever given a choice like this I choose the simplier solution
+    we load the script. when ever given a choice like this I choose the simpler solution
     <pre><code class="html">    ...
     &lt;script src="http://blog-dibbs-tech.disqus.com/embed.js"&gt;&lt;/script&gt;
 &lt;/head&gt;</code></pre>
