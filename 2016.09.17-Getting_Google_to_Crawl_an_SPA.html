@@ -1,0 +1,61 @@
+<p>
+    After this blog was up for a few weeks I realized that google was not crawling the site. 
+    After a bit of research I found out that google does not fully support crawling Single Webpage Applications, they do have support for rendering pages that use javascript to add content,
+    however google does not crawl links that use #. The # was designed to be used for inter page links so there is a good argument that search engine can ignore them, and the SPA frameworks out there
+    are really abusing them, just little bit.
+</p>
+<h3>The Solution</h3>
+<p>
+    The plan is to submit a site map that google can use to crawl all of the pages that need to be indexed.
+    However the site map must use non-hash based urls or it does not got the page you want.
+    The good thing is that google has a <a href="https://www.google.com/webmasters/tools/googlebot-fetch">site</a> that allow you to fetch your pages as google bot.
+
+<h3>Reconfigure Routing</h3>
+<p>
+    Aurelia has a feature called 'canActivate' on the view model, you can override the method and check if the view model can activate.
+    If not can and return a Redirect to a different route, using this the plan is simply to take everything after the ? use that has the #.
+    Basically '?post/2016.08.08/Aurelia Validatejs' -> '?post/2016.08.08/Aurelia Validatejs#post/2016.08.08/Aurelia Validatejs' it is not the best looking url,
+    however google does not like a redirect during the crawl process. We also only want to do this once so that if a human goes to the site via this url they can navigate around like normal.
+
+    <h4>posts.ts (the home page)</h4> 
+    <pre>
+        <code class="typescript">     static once: Boolean = false;
+                 canActivate(){
+        if(!Posts.once){
+            Posts.once = true;
+            var fragment = decodeURIComponent(window.location.search.substring(1));
+            
+            if(fragment)
+                return new Redirect(fragment);
+        }
+     }</code>
+    </pre>
+</p>
+
+<h3>Set up the site map</h3>
+<p>
+    there are number of different site map formats, the simplest one is just a text file with a list of urls one per line.
+    <pre>
+        <code class="haskell">siteMap :: Snap()
+siteMap = do
+    req <-  getRequest
+    summeries <- liftIO $ getSummereies
+
+    writeLBS $ (LBS.intercalate "\n") $ toAbsolute (athority req) $ posts summeries
+    where posts s = "" : map toUrl s
+          toAbsolute s ps = map (\p -> LBS.append s (encodeUtf8 p)) ps
+          athority r = LBS.concat ["http://", LBS.fromStrict $ rqServerName r, "/" ]
+          </code>
+    </pre>
+</p>
+
+<h3>Sign up for the web masters tools and configure</h3>
+<p>
+    The last step is to sign up for the <a href="https://www.google.com/webmasters/tools/home?hl=en">web masters tools aka search console</a> and configure a site map
+</p>
+
+<h3>Waiting for a crawl to happen</h3>
+<p>
+    So this is the first post that I have written since setting everything up so I don't know how long it will take for a change to the site map to result in this post showing up on google. 
+    I will update this will info once this experiment is completed.
+</p>
